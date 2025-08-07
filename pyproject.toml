@@ -1,0 +1,18 @@
+[project]
+name = "Rotatouille"
+version = "0.0.1"
+description = "Rotation equivariant and invariant layers for planar contour data."
+requires-python = ">=3.9"
+dependencies = [
+    "torch",
+    "tqdm",
+    "numpy",
+    "scipy",
+    "opencv-python",
+    "matplotlib",
+    "pyarrow",
+    "pandas",
+    "trimesh",
+    "scikit-image"
+]
+

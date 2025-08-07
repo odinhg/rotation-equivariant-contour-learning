@@ -1,0 +1,4 @@
+data/
+original_data/
+generated_data/
+__pycache__
