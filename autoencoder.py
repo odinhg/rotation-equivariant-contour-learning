@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from types import SimpleNamespace
 import cv2
 from copy import deepcopy
+import random
 
 from utils import set_seed, split_dataset, get_number_of_parameters, print_config
 from rotatouille import ShapeAutoEncoder
@@ -232,8 +233,8 @@ reconstructions_dir = Path("reconstructions")
 reconstructions_dir.mkdir(exist_ok=True)
 
 print("Saving reconstruction visualizations to disk...")
-idx_visualize = [775, 243, 0, 16, 54, 56, 97, 101, 123, 162, 193, 216, 237, 289, 425, 439, 553, 573, 608, 646, 689, 717, 763, 766, 801, 806, 824, 833, 41, 68, 121, 141, 768]
-for idx in tqdm(idx_visualize):
+for _ in range(50): 
+    idx = random.randint(0, len(data["original_image"]) - 1)
     original_image = data["original_image"][idx].cpu().squeeze().numpy()
     reconstructed_image = data["reconstructed_image"][idx].cpu().squeeze().numpy()
 

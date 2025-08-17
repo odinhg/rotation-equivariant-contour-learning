@@ -23,6 +23,7 @@ Run `uv run train_classifier.py <model_name>` where `<model_name>` can be one of
 - `ours_fashion_mnist`: Rotation equivariant CNN on Fashion MNIST contour data.
 - `baseline_contour_fashion_mnist`: Baseline CNN on Fashion MNIST contour binary images.
 - `baseline_filled_fashion_mnist`: Baseline CNN on Fashion MNIST filled binary images.
+- `baseline_gnn_fashion_mnist`: Baseline GNN on Fashion MNIST contour data using GCN layers.
 
 - `ours_rot_mnist`: Rotation equivariant CNN on Rotated MNIST contour data.
 - `ours_rh_rot_mnist`: Rotation equivariant CNN on Rotated MNIST contour data with invariant radial histogram features.
@@ -30,8 +31,7 @@ Run `uv run train_classifier.py <model_name>` where `<model_name>` can be one of
 - `ours_modelnet`: Rotation equivariant CNN on ModelNet contour data.
 - `baseline_contour_modelnet`: Baseline CNN on ModelNet contour binary images.
 - `baseline_filled_modelnet`: Baseline CNN on ModelNet filled binary images.
-
-
+- `baseline_gnn_modelnet`: Baseline GNN on ModelNet contour data using GCN layers.
 
 ### Autoencoder for Shape Reconstructions
 
