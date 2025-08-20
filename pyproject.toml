@@ -13,6 +13,7 @@ dependencies = [
     "pyarrow",
     "pandas",
     "trimesh",
-    "scikit-image"
+    "scikit-image",
+    "pyqt6>=6.9.1",
 ]
 

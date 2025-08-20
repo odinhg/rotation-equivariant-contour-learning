@@ -2,7 +2,19 @@
 
 ![](./resources/rota.png)
 
-This repository contains code for the paper [INSERT TITLE](http://example.com). It implements rotation equivariant and invariant layers for deep learning on contour data. It also contains all code needed to reproduce the experiments from the paper.
+This repository contains code for the paper *RotaTouille: Rotation Equivariant Deep Learning for Contours*. It implements rotation equivariant and invariant layers for deep learning on contour data. It also contains all code needed to reproduce the experiments from the paper.
+
+## Visualization
+
+We visualize equivariance in the case of a shape reconstructing autoencoder by rotating the input data.
+
+![](./resources/animation/contour/rotatouille_contour.gif)
+
+**Figure 1:** Original and reconstructed shape from the autoencoder on contour data using our rotation equivariant layers. The stabilized reconstruction is visually constant under rotation.
+
+![](./resources/animation/image/baseline_image.gif)
+
+**Figure 2:** Original and reconstructed shape from the autoencoder on binary images using standard CNN layers which are not rotation equivariant (but trained with data augmentation). The reconstructed shape changes under rotation of the input shape.
 
 ## Equivariant and Invariant Layers
 
