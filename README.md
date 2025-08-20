@@ -14,7 +14,7 @@ We visualize equivariance in the case of a shape reconstructing autoencoder by r
 
 ![](./resources/animation/image/baseline_image.gif)
 
-**Figure 2:** Original and reconstructed shape from the autoencoder on binary images using standard CNN layers which are not rotation equivariant (but trained with data augmentation). The reconstructed shape changes under rotation of the input shape.
+**Figure 2:** Original and reconstructed shape from the autoencoder on binary images using standard CNN layers which are not rotation equivariant. The reconstructed shape changes under rotation of the input shape.
 
 ## Equivariant and Invariant Layers
 
