@@ -149,7 +149,7 @@ class GCNLayer(nn.Module):
         self.lin = nn.Linear(in_features, out_features, bias=False)
         self.register_buffer("A_hat", cycle_adj_with_self(n))
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: dict) -> torch.Tensor:
         # x: (B, in_features, n)
         x = x.transpose(1, 2)           # (B, n, in_features)
         x = self.A_hat @ x              # (B, n, in_features)
@@ -185,3 +185,70 @@ class CycleGCNClassifier(nn.Module):
         x = self.pool(x)                # (B, hidden_dim)
         return self.classifier(x)       # (B, num_classes)
 
+def pad_contour(contours: torch.Tensor, size: int) -> torch.Tensor:
+    """Pads contour with wrapping to enable circular convolutions"""
+    return F.pad(contours, pad=(size,) * 2, mode="circular")
+
+def priority_pool(contour: torch.Tensor, n_prune: int) -> torch.Tensor:
+    """Remove-one priority pooling"""
+    norms = contour.norm(dim=1)
+    _, idxs = torch.topk(norms, k=contour.shape[-1] - n_prune, dim=1)
+    idxs = idxs.sort(dim=1).values
+    pruned_contour = torch.gather(contour, 2, idxs.unsqueeze(1).expand(-1, contour.shape[1], -1))
+    return pruned_contour
+
+class CircConvBlock(nn.Module):
+    def __init__(self, in_channels: int, out_channels: int, n_points_out: int, kernel_size: int=3) -> None:
+        """ContourCNN convolutional block: CircConv -> BatchNorm -> ReLU -> PriorityPool"""
+        super().__init__()
+        self.padding = (kernel_size - 1) // 2
+        self.conv = nn.Conv1d(in_channels, out_channels, kernel_size=kernel_size, padding=0, bias=True)
+        self.n_points_out = n_points_out
+        self.bn = nn.BatchNorm1d(out_channels)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out = pad_contour(x, size=self.padding) 
+        out = self.conv(out)
+        out = self.bn(out)
+        out = F.relu(out)
+        L = out.shape[-1]
+        n_prune = L - self.n_points_out
+        out = priority_pool(out, n_prune)
+        return out
+
+
+class ContourCNNClassifier(nn.Module):
+    def __init__(self, n_classes: int, in_channels: int = 2) -> None:
+        """ContourCNN classifier for 2D contours following the architecture described in Droby et al. 2021"""
+        super().__init__()
+        self.feature_extractor = nn.Sequential(
+                CircConvBlock(in_channels=in_channels, out_channels=32, n_points_out=40),
+                CircConvBlock(in_channels=32, out_channels=64, n_points_out=30),
+                CircConvBlock(in_channels=64, out_channels=128, n_points_out=20),
+                )
+        self.classifier = nn.Sequential(
+                nn.Linear(128, 80),
+                nn.BatchNorm1d(80),
+                nn.Dropout(0.5),
+                nn.ReLU(),
+                nn.Linear(80, n_classes),
+                )
+
+    def normalize(self, x: torch.Tensor) -> torch.Tensor:
+        """Normalize contour coordinates to [0, 1]"""
+        min_x = x.min(dim=-2, keepdim=True).values
+        max_x = x.max(dim=-2, keepdim=True).values
+        return (x - min_x) / (max_x - min_x)
+
+    def forward(self, example: dict) -> torch.Tensor:
+        x = example["data"]
+        # Convert to real (B, C, L) -> (B, C, L, 2)
+        x = torch.view_as_real(x)
+        # Normalize coordinates to [0, 1]
+        x = self.normalize(x)
+        # Stack channels (B, C, L, 2) -> (B, 2*C, L)
+        x = x.permute(0, 3, 1, 2).reshape(x.shape[0], -1, x.shape[2])
+        out = self.feature_extractor(x) # (B, 128, L)
+        out = out.mean(dim=-1) # Global average pooling -> (B, 128)
+        out = self.classifier(out) # (B, n_classes)
+        return out

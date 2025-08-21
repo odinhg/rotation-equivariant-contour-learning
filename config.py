@@ -1,7 +1,8 @@
 import torch
 from rotatouille import ContourClassifier
-from baseline.models import BaselineClassifier2d, CycleGCNClassifier
+from baseline.models import BaselineClassifier2d, CycleGCNClassifier, ContourCNNClassifier
 from dataset import ContourDataset, ImageDataset
+
 
 global_config = {
         "seed": 0,                  # Random seed
@@ -75,6 +76,33 @@ baseline_gnn_fashion_mnist = {
         "rotate_train": True,
         }
 
+baseline_contourcnn_fashion_mnist = {
+        "description": "ContourCNN (Droby et al. 2021) on Fashion MNIST contours.",
+        "val_size": 0.1,
+        "n_epochs": 200,
+        "batch_size": 128,
+        "repetitions": 10,
+        "dataset_constructor": ContourDataset,
+        "train_data_file": "datasets/generated_data/fashion_mnist_train.parquet",
+        "val_data_file": None,
+        "test_data_file": "datasets/generated_data/fashion_mnist_test.parquet",
+        "dataset_kwargs": {
+            "length": 128,
+            "channels": 1,
+            "use_extra_features": False,
+            },
+        "model_constructor": ContourCNNClassifier,
+        "model_kwargs": {
+            "in_channels": 2,
+            "n_classes": 10,
+            },
+        "lr": 1e-3,
+        "scheduler_step_size": 50,
+        "scheduler_gamma": 0.5,
+        "rotate_train": True,
+        }
+
+
 baseline_contour_fashion_mnist = {
         "description": "Baseline 2D CNN on Fashion MNIST contour images dataset",
         "val_size": 0.1,
@@ -127,6 +155,61 @@ baseline_filled_fashion_mnist = {
             },
         "lr": 1e-2,
         "scheduler_step_size": 25,
+        "scheduler_gamma": 0.5,
+        "rotate_train": True,
+        }
+
+baseline_gnn_rot_mnist = {
+        "description": "Baseline GNN (graph convolution) on the Rotated MNIST contour dataset.",
+        "val_size": 0.05,
+        "n_epochs": 200,
+        "batch_size": 128,
+        "repetitions": 1,
+        "dataset_constructor": ContourDataset,
+        "train_data_file": "datasets/generated_data/rotated_mnist_train.parquet",
+        "val_data_file": None,
+        "test_data_file": "datasets/generated_data/rotated_mnist_test.parquet",
+        "dataset_kwargs": {
+            "length": 128,
+            "channels": 1,
+            "use_extra_features": False,
+            },
+        "model_constructor": CycleGCNClassifier,
+        "model_kwargs": {
+            "n": 128,
+            "in_dim": 2,
+            "hidden_dim": 128,
+            "n_layers": 5,
+            "n_classes": 10,
+            },
+        "lr": 1e-3,
+        "scheduler_step_size": 50,
+        "scheduler_gamma": 0.5,
+        "rotate_train": True,
+        }
+
+baseline_contourcnn_rot_mnist = {
+        "description": "Baseline ContourCNN (Droby et al. 2021) on Rotated MNIST contours.",
+        "val_size": 0.05,
+        "n_epochs": 200,
+        "batch_size": 128,
+        "repetitions": 1,
+        "dataset_constructor": ContourDataset,
+        "train_data_file": "datasets/generated_data/rotated_mnist_train.parquet",
+        "val_data_file": None,
+        "test_data_file": "datasets/generated_data/rotated_mnist_test.parquet",
+        "dataset_kwargs": {
+            "length": 128,
+            "channels": 1,
+            "use_extra_features": False,
+            },
+        "model_constructor": ContourCNNClassifier,
+        "model_kwargs": {
+            "in_channels": 2,
+            "n_classes": 10,
+            },
+        "lr": 1e-3,
+        "scheduler_step_size": 50,
         "scheduler_gamma": 0.5,
         "rotate_train": True,
         }
@@ -320,7 +403,7 @@ baseline_gnn_modelnet = {
             "in_dim": 8,
             "hidden_dim": 128,
             "n_layers": 5,
-            "n_classes": 10,
+            "n_classes": 4,
             },
         "lr": 1e-3,
         "scheduler_step_size": 50,
@@ -328,6 +411,31 @@ baseline_gnn_modelnet = {
         "rotate_train": True,
         }
 
+baseline_contourcnn_modelnet = {
+        "description": "ContourCNN (Droby et al. 2021) on ModelNet contours.", 
+        "val_size": 0.1,
+        "n_epochs": 200,
+        "batch_size": 16,
+        "repetitions": 10,
+        "dataset_constructor": ContourDataset,
+        "train_data_file": "datasets/generated_data/modelnet_train.parquet",
+        "val_data_file": None,
+        "test_data_file": "datasets/generated_data/modelnet_test.parquet",
+        "dataset_kwargs": {
+            "length": 128,
+            "channels": 4,
+            "use_extra_features": False,
+            },
+        "model_constructor": ContourCNNClassifier,
+        "model_kwargs": {
+            "in_channels": 8,
+            "n_classes": 4,
+            },
+        "lr": 1e-3,
+        "scheduler_step_size": 50,
+        "scheduler_gamma": 0.5,
+        "rotate_train": True,
+        }
 
 # Dictionary of configurations
 configs = {
@@ -335,13 +443,17 @@ configs = {
     "baseline_gnn_fashion_mnist": baseline_gnn_fashion_mnist,
     "baseline_contour_fashion_mnist": baseline_contour_fashion_mnist,
     "baseline_filled_fashion_mnist": baseline_filled_fashion_mnist,
+    "baseline_contourcnn_fashion_mnist": baseline_contourcnn_fashion_mnist,
     
+    "baseline_gnn_rot_mnist": baseline_gnn_rot_mnist,
+    "baseline_contourcnn_rot_mnist": baseline_contourcnn_rot_mnist,
     "ours_rot_mnist": ours_rot_mnist,
     "ours_rh_rot_mnist": ours_rh_rot_mnist,
 
     "baseline_filled_modelnet": baseline_filled_modelnet,
     "baseline_contour_modelnet": baseline_contour_modelnet,
     "baseline_gnn_modelnet": baseline_gnn_modelnet,
+    "baseline_contourcnn_modelnet": baseline_contourcnn_modelnet,
     "ours_modelnet": ours_modelnet,
 }
 
