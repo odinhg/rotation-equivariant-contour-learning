@@ -185,12 +185,39 @@ class CycleGCNClassifier(nn.Module):
         x = self.pool(x)                # (B, hidden_dim)
         return self.classifier(x)       # (B, num_classes)
 
+class CycleGCNRegressor(nn.Module):
+    """Baseline regressor based on graph convolution."""
+    def __init__(self, n: int = 100, in_dim: int = 1, hidden_dim: int = 128, n_layers: int = 5):
+        super().__init__()
+        layers = []
+        for _ in range(n_layers):
+            layers.append(GCNLayer(in_dim, hidden_dim, n))
+            in_dim = hidden_dim
+        self.gcn = nn.ModuleList(layers)
+        self.regressor = nn.Sequential(
+                nn.Linear(hidden_dim, 64),
+                nn.LayerNorm(64),
+                nn.Dropout(0.5),
+                nn.ReLU(),
+                nn.Linear(64, 1)
+                )
+
+    def forward(self, example: torch.Tensor) -> torch.Tensor:
+        x = example["data"] # (B, C, L) complex
+        B, C, L = x.shape
+        x = torch.view_as_real(x) # (B, C, L, 2) real
+        x = x.permute(0, 3, 1, 2).reshape(B, 2 * C, L) # (B, 2*C, L) real
+        for gcn in self.gcn:
+            x = F.relu(gcn(x))
+        x = x.permute(0, 2, 1)       # (B, L, hidden_dim)
+        return self.regressor(x).permute(0, 2, 1) # (B, 1, L)
+
 def pad_contour(contours: torch.Tensor, size: int) -> torch.Tensor:
     """Pads contour with wrapping to enable circular convolutions"""
     return F.pad(contours, pad=(size,) * 2, mode="circular")
 
 def priority_pool(contour: torch.Tensor, n_prune: int) -> torch.Tensor:
-    """Remove-one priority pooling"""
+    """Remove-one priority pooling (ContourCNN) """
     norms = contour.norm(dim=1)
     _, idxs = torch.topk(norms, k=contour.shape[-1] - n_prune, dim=1)
     idxs = idxs.sort(dim=1).values

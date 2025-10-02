@@ -5,6 +5,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from scipy.interpolate import interp1d
 from tqdm import tqdm
+from sklearn.metrics import r2_score 
 
 def generate_random_closed_curve(n_points=500, n_modes=5, seed=None):
     rng = np.random.default_rng(seed)
@@ -194,13 +195,21 @@ def circumcircle_curvature(points):
     curvature[np.isnan(curvature) | np.isinf(curvature)] = 0.0
     return curvature
 
+
+target_curvatures = np.array([data["curvature"] for data in test_dataset])
+
 # Compute mean absolute error between approximated curvature and analytic curvature over the dataset
-mae = np.mean([np.mean(np.abs(data["curvature"] - approximate_curvature_closed(data["curve"]))) for data in test_dataset])
-print(f"Mean Absolute Error (MAE) between Analytic and Finite Difference Curvature: {mae:.4f}")
+finite_difference_curvatures = np.array([approximate_curvature_closed(data["curve"]) for data in test_dataset])
+finite_difference_mae = np.mean(np.abs(target_curvatures - finite_difference_curvatures))
+finite_difference_r2 = r2_score(target_curvatures.flatten(), finite_difference_curvatures.flatten())
+
+print(f"Finite Difference Curvature MAE: {finite_difference_mae:.4f}, R²: {finite_difference_r2:.4f}")
 
 # Compute mean absolute error between circumcircle curvature and analytic curvature
-mae_circumcircle = np.mean([np.mean(np.abs(data["curvature"] - circumcircle_curvature(data["curve"]))) for data in test_dataset])
-print(f"Mean Absolute Error (MAE) between Analytic and Circumcircle Curvature: {mae_circumcircle:.4f}")
+circumcircle_curvatures = np.array([circumcircle_curvature(data["curve"]) for data in test_dataset])
+circumcircle_mae = np.mean(np.abs(target_curvatures - circumcircle_curvatures))
+circumcircle_r2 = r2_score(target_curvatures.flatten(), circumcircle_curvatures.flatten())
+print(f"Circumcircle Curvature MAE: {circumcircle_mae:.4f}, R²: {circumcircle_r2:.4f}")
 
 # Save datasets to file
 def save_parquet(examples, path):
