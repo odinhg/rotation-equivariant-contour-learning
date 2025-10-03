@@ -1,19 +1,19 @@
 import torch
 import torch.nn as nn
-from .layers import ConvLayer, TransposedConvLayer, SpatialPool, ModReLU, ModTanh, GlobalPool, BatchNorm
+from .layers import ConvLayer, TransposedConvLayer, SpatialPool, ModReLU, ModTanh, GlobalPool, BatchNorm, ActivationFunction
 
 class ConvBlock(nn.Module):
     """
-    Convolutional block with a convolutional layer, ModReLU activation, and spatial pooling.
+    Convolutional block with a convolutional layer, activation, batch norm and spatial pooling.
     """
-    def __init__(self, in_channels: int, out_channels: int, kernel_size: int, p: int, method: str) -> None: 
+    def __init__(self, in_channels: int, out_channels: int, kernel_size: int, p: int, method: str, strided_pool: bool = True, af: str = "modrelu", global_pool_method: str = "learnable") -> None: 
         super().__init__()
         padding = (kernel_size - 1) // 2 # Keep output size the same as input size
         self.conv = ConvLayer(in_channels, out_channels, kernel_size, padding)
-        self.activation = ModReLU()
+        self.activation = ActivationFunction(af)
         self.bn = BatchNorm(out_channels)
-        self.pool = SpatialPool(p=p, method=method) if p > 1 else nn.Identity()
-        self.global_pool = GlobalPool(out_channels)
+        self.pool = SpatialPool(p=p, method=method, strided_pool=strided_pool) if p > 1 else nn.Identity()
+        self.global_pool = GlobalPool(out_channels, method=global_pool_method)
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         out = self.conv(x)

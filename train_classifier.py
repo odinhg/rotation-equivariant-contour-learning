@@ -61,7 +61,7 @@ def train_model(config, rng):
     num_params = get_number_of_parameters(model)
     print(f"Number of parameters in the model: {num_params}")
 
-    best_val_accuracy = 0.0
+    best_val_accuracy = -1.0
     best_epoch = 0
     best_state_dict = None
 
@@ -85,7 +85,7 @@ def train_model(config, rng):
             pbar.set_description(f"[{epoch + 1:03}|{config.n_epochs:03}] TrainLoss: {mean_train_loss:.3f} – LR: {scheduler.get_last_lr()[0]:.2E} – BestValAcc: {best_val_accuracy:.3f} (epoch {best_epoch + 1})")
         scheduler.step()
 
-        if (epoch + 1) % 10 == 0:
+        if (epoch + 1) % 1 == 0:
             model.eval()
             rotate = config.repetitions > 1
             _, val_accuracy = compute_accuracy(model, val_loader, criterion, config.device, rotate=rotate, repetitions=1)
