@@ -249,6 +249,52 @@ def run_contour_lengths_experiment(global_config):
     for length, (mean_acc, std_acc) in results.items():
         print(f"{length=}: {mean_acc:.3f} ± {std_acc:.3f}")
 
+def run_kernel_sizes_experiment(global_config):
+    kernel_size_values = [3, 5, 7, 9, 11, 13]
+
+    results = {}
+    for kernel_size in kernel_size_values:
+        print(f"Running experiment with kernel_size={kernel_size}")
+
+        experiment_config = {
+                "model_kwargs": {
+                "n_classes": 10,
+                "feature_extractor_layers": [
+                    {"in_channels": 1, "out_channels": 8, "kernel_size": kernel_size, "p": 1, "method": "learnable", "af": "modrelu"}, 
+                    {"in_channels": 8, "out_channels": 8, "kernel_size": kernel_size, "p": 2, "method": "learnable", "af": "modrelu"},
+                    {"in_channels": 8, "out_channels": 16, "kernel_size": kernel_size, "p": 1, "method": "learnable", "af": "modrelu"},
+                    {"in_channels": 16, "out_channels": 16, "kernel_size": kernel_size, "p": 2, "method": "learnable", "af": "modrelu"},
+                    {"in_channels": 16, "out_channels": 35, "kernel_size": kernel_size, "p": 1, "method": "learnable", "af": "modrelu"},
+                    {"in_channels": 35, "out_channels": 35, "kernel_size": kernel_size, "p": 1, "method": "learnable", "af": "modrelu"},
+                    {"in_channels": 35, "out_channels": 10, "kernel_size": kernel_size, "p": 1, "method": "learnable", "af": "modrelu"},
+                    ],
+                "extra_features_dim": 0,
+                "fcnn_hidden_dim": 128,
+                },
+                }
+
+        config = SimpleNamespace(**global_config, **experiment_config)
+
+        test_accuracies = []
+        for run in range(config.n_runs):
+            rng = set_seed(config.seed + run, return_generator=True)
+            print(f"Run {run + 1}/{config.n_runs}")
+            state_dict = train_model(config, rng)
+            test_accuracy = evaluate_model(config, state_dict)
+            test_accuracies.append(test_accuracy)
+            print(f"Test accuracy for run {run + 1}: {test_accuracy:.4f}")
+    
+        print(f"\nResults for experiment with {kernel_size=}:")
+        print(f"Accuracies for all runs: {test_accuracies}")
+        print(f"Average overall accuracy: {np.mean(test_accuracies):.3f} ± {np.std(test_accuracies):.3f}")
+        results[kernel_size] = (np.mean(test_accuracies), np.std(test_accuracies))
+
+    print("\nFinal results for all experiments:")
+    for kernel_size, (mean_acc, std_acc) in results.items():
+        print(f"{kernel_size=}: {mean_acc:.3f} ± {std_acc:.3f}")
+
+
+
 if __name__ == "__main__":
     global_config = {
             "seed": 0,                  # Random seed
@@ -276,7 +322,7 @@ if __name__ == "__main__":
         "rotate_train": False,
         }
 
-    experiments = ["coarsening_method", "activation_functions", "global_pooling_method", "no_coarsening", "contour_lengths"]
+    experiments = ["coarsening_method", "activation_functions", "global_pooling_method", "no_coarsening", "contour_lengths", "kernel_sizes"]
     parser = argparse.ArgumentParser()
     parser.add_argument("experiment", type=str, help="Name of the experiment to run", choices=experiments)
     args = parser.parse_args()
@@ -291,5 +337,7 @@ if __name__ == "__main__":
         run_global_pooling_method_experiment(global_config)
     elif args.experiment == "contour_lengths":
         run_contour_lengths_experiment(global_config)
+    elif args.experiment == "kernel_sizes":
+        run_kernel_sizes_experiment(global_config)
     else:
         raise ValueError(f"Unknown experiment: {args.experiment}")
