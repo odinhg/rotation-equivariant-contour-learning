@@ -57,6 +57,7 @@ Run `uv run autoencoder.py <model_name>` where `<model_name>` can be one of the 
 Run `uv run curvature_regression.py <model_name>` where `<model_name>` can be one of the following:
 
 - `contour`: Equivariant curvature regression on contour data using the complex-valued autoencoder.
-- `baseline`: Baseline curvature regression using a real-valude CNN on Cartesian coordinates.
+- `baseline_cnn`: Baseline curvature regression using a real-valued 1D CNN on Cartesian coordinates.
+- `baseline_gcn`: Baseline GNN curvature regression using GCN layers on contour data. 
 
-When creating the curvature dataset, you will get the mean absolute error for the numerical methods based on finite difference and circle fitting printed.
+When creating the curvature dataset, you will get the mean absolute error and R2 for the numerical methods based on finite difference and circle fitting printed.

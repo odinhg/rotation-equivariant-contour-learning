@@ -61,7 +61,7 @@ def train_model(config, rng):
     num_params = get_number_of_parameters(model)
     print(f"Number of parameters in the model: {num_params}")
 
-    best_val_accuracy = 0.0
+    best_val_accuracy = -1.0
     best_epoch = 0
     best_state_dict = None
 

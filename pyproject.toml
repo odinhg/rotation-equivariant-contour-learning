@@ -4,9 +4,9 @@ version = "0.0.1"
 description = "Rotation equivariant and invariant layers for planar contour data."
 requires-python = ">=3.9"
 dependencies = [
-    "torch",
+    "torch==2.0.1",
     "tqdm",
-    "numpy",
+    "numpy<2",
     "scipy",
     "opencv-python",
     "matplotlib",
@@ -15,5 +15,6 @@ dependencies = [
     "trimesh",
     "scikit-image",
     "pyqt6>=6.9.1",
+    "scikit-learn>=1.6.1",
 ]
 

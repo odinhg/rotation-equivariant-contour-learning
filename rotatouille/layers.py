@@ -100,6 +100,7 @@ class SpatialMaxPool(nn.Module):
 
         return out
 
+
 class SpatialMaxUnpool(nn.Module):
     """
     Max upool in the spatial dimension. Input tensor of shape (B, C, m). Output tensor of shape (B, C, n)
@@ -146,22 +147,75 @@ class SpatialLearnablePool(nn.Module):
         out = a * self.avg_pool(x) + (1 - a) * self.max_pool(x)
         return out
 
+class SpatialMaxCosetPool(nn.Module):
+    """
+    Equivariant max pooling in the spatial dimension pooling over cosets (every p-th element).
+    Input tensor of shape (B, C, n). Output tensor of shape (B, C, m) where m = n // p.
+    """
+    def __init__(self, p: int = 2) -> None:
+        super().__init__()
+        self.p = p
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        B, C, n = x.shape
+        assert n % self.p == 0, "n must be divisible by p"
+        m = n // self.p
+        x = x.view(B, C, self.p, m).permute(0, 1, 3, 2)  # (B,C,m,p)
+        # get argmax indices based on absolute value
+        idx = x.abs().argmax(dim=-1, keepdim=True)
+        return x.gather(-1, idx).squeeze(-1)  # (B,C,m)
+
+class SpatialAverageCosetPool(nn.Module):
+    """
+    Equivariant average pooling in the spatial dimension pooling over cosets (every p-th element).
+    Input tensor of shape (B, C, n). Output tensor of shape (B, C, m) where m = n // p.
+    """
+    def __init__(self, p: int = 2):
+        super().__init__()
+        self.p = p
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        B, C, n = x.shape
+        assert n % self.p == 0, "n must be divisible by p"
+        m = n // self.p
+
+        # Reshape (B,C,n) -> (B,C,p,m) -> (B,C,m,p)
+        x = x.view(B, C, self.p, m).permute(0, 1, 3, 2)
+        return x.mean(dim=-1)  # (B,C,m)
+
+class SpatialLearnableCosetPool(nn.Module):
+    """
+    Learnable combination of average and max coset pooling.
+    Input tensor of shape (B, C, n). Output tensor of shape (B, C, m) where m = n // p.
+    """
+    def __init__(self, p: int = 2) -> None:
+        super().__init__()
+        self.p = p
+        self.avg_pool = SpatialAverageCosetPool(p=p)
+        self.max_pool = SpatialMaxCosetPool(p=p)
+        self.alpha = nn.Parameter(torch.tensor(0.5), requires_grad=True)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        a = F.sigmoid(self.alpha)
+        out = a * self.avg_pool(x) + (1 - a) * self.max_pool(x)
+        return out
+
 class SpatialPool(nn.Module):
     """
     Spatial pooling layer that support maximum (magnitude) pooling, average pooling or a learnable combination of both.
     Input tensor of shape (B, C, n). Output tensor of shape (B, C, m) where m = n // p. 
     """
-    def __init__(self, p: int = 2, method: str = "average") -> None:
+    def __init__(self, p: int = 2, method: str = "average", strided_pool: bool = True) -> None:
         super().__init__()
         self.p = p
         self.method = method
 
         if method == "average":
-            self.pool = SpatialAveragePool(p=p)
+            self.pool = SpatialAveragePool(p=p) if strided_pool else SpatialAverageCosetPool(p=p)
         elif method == "max":
-            self.pool = SpatialMaxPool(p=p)
+            self.pool = SpatialMaxPool(p=p) if strided_pool else SpatialMaxCosetPool(p=p)
         elif method == "learnable":
-            self.pool = SpatialLearnablePool(p=p)
+            self.pool = SpatialLearnablePool(p=p) if strided_pool else SpatialLearnableCosetPool(p=p)
         else:
             raise ValueError(f"Unknown pooling method: {method}. Supported methods: 'average', 'max', 'learnable'.")
 
@@ -192,26 +246,66 @@ class ModTanh(nn.Module):
     """
     def __init__(self) -> None:
         super().__init__()
-        self.b = nn.Parameter(torch.tensor(0.0), requires_grad=True)
+        #self.b = nn.Parameter(torch.tensor(0.0), requires_grad=True)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return F.tanh(x.abs() + self.b) * x / x.abs()
+        #return F.tanh(x.abs() + self.b) * x / x.abs()
+        return F.tanh(x.abs()) * x / x.abs()
+
+class SigLog(nn.Module):
+    """
+    Rotation-equivariant Siglog activation function for complex-valued input.
+    """
+    def __init__(self) -> None:
+        super().__init__()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x / (x.abs() + 1)
+
+class ActivationFunction(nn.Module):
+    """
+    Activation function layer that supports ModReLU, ModTanh and SigLog.
+    Input tensor of shape (B, C, n). Output tensor of shape (B, C, n).
+    """
+    def __init__(self, method: str = "modrelu") -> None:
+        super().__init__()
+        if method == "modrelu":
+            self.activation = ModReLU()
+        elif method == "modtanh":
+            self.activation = ModTanh()
+        elif method == "siglog":
+            self.activation = SigLog()
+        else:
+            raise ValueError(f"Unknown activation function: {method}. Supported methods: 'modrelu', 'modtanh', 'siglog'.")
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.activation(x)
 
 class GlobalPool(nn.Module):
     """
     Global pooling layer outputs a single value per channel, aggregating absolute values across the spatial dimension. The output feature vector is shift and rotation invariant.
     Input tensor of shape (B, C, n). Output tensor of shape (B, C).
     """
-    def __init__(self, in_channels: int) -> None:
+    def __init__(self, in_channels: int, method: str = "learnable") -> None:
         super().__init__()
         self.in_channels = in_channels
-        self.alpha = nn.Parameter(torch.ones(size=(1, in_channels)), requires_grad=True)
+        if method not in ["average", "max", "learnable"]:
+            raise ValueError(f"Unknown pooling method: {method}. Supported methods: 'average', 'max', 'learnable'.")
+
+        self.method = method
+
+        if method == "learnable":
+            self.alpha = nn.Parameter(torch.ones(size=(1, in_channels)), requires_grad=True)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = center_contour(x)
         D = x.abs()
-        a = F.sigmoid(self.alpha)
-        out = a * D.mean(dim=-1) + (1 - a) * D.max(dim=-1)[0]
+        if self.method == "average":
+            out = D.mean(dim=-1)
+        elif self.method == "max":
+            out = D.max(dim=-1)[0]
+        else:
+            a = F.sigmoid(self.alpha)
+            out = a * D.mean(dim=-1) + (1 - a) * D.max(dim=-1)[0]
         return out
 
 class BatchNorm(nn.Module):

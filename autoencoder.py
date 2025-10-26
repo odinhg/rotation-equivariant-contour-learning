@@ -16,6 +16,7 @@ from utils import set_seed, split_dataset, get_number_of_parameters, print_confi
 from rotatouille import ShapeAutoEncoder
 from baseline import BaselineAutoencoder2d
 from dataset import ContourDatasetAutoencoder, ImageDatasetAutoencoder
+from transforms import rotate_batch
 
 global_config = {
     "data_file": "datasets/generated_data/cell_segmentations.parquet",
@@ -47,6 +48,7 @@ config_contour = {
     },
     "criterion": lambda output, target: F.mse_loss(torch.view_as_real(output), torch.view_as_real(target)),
     "checkpoint_path": Path("checkpoints/best_autoencoder_contour.pth"),
+    "rotate_train": False,
 }
 
 config_image = {
@@ -65,6 +67,7 @@ config_image = {
     },
     "criterion": F.mse_loss,
     "checkpoint_path": Path("checkpoints/best_autoencoder_image.pth"),
+    "rotate_train": True,
 }
 
 configs = {
@@ -102,6 +105,8 @@ def train_autoencoder(model, train_loader, val_loader, optimizer, config):
     for epoch in range(config.epochs):
         total_loss = 0.0
         for batch in tqdm(train_loader):
+            if config.rotate_train:
+                batch["data"] = rotate_batch(batch["data"], seed=epoch)
             batch = {key: value.to(config.device) for key, value in batch.items() if isinstance(value, torch.Tensor)}
             optimizer.zero_grad()
             output = model(batch)
