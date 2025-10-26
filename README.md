@@ -2,7 +2,7 @@
 
 ![](./resources/rota.png)
 
-This repository contains code for the paper *RotaTouille: Rotation Equivariant Deep Learning for Contours*. It implements rotation equivariant and invariant layers for deep learning on contour data. It also contains all code needed to reproduce the experiments from the paper.
+This repository contains code for the paper [*RotaTouille: Rotation Equivariant Deep Learning for Contours*](https://arxiv.org/abs/2508.16359). It implements rotation equivariant and invariant layers for deep learning on contour data. It also contains all code needed to reproduce the experiments from the paper.
 
 ## Visualization
 
